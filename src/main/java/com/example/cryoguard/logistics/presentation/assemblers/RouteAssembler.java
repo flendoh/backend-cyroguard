@@ -5,29 +5,42 @@ import com.example.cryoguard.logistics.domain.commands.CreateRouteCommand;
 import com.example.cryoguard.logistics.domain.commands.UpdateRouteCommand;
 import com.example.cryoguard.logistics.domain.entities.RouteCheckpoint;
 import com.example.cryoguard.logistics.domain.entities.RouteLocationHistory;
+import com.example.cryoguard.logistics.domain.valueobjects.GpsCoordinates;
 import com.example.cryoguard.logistics.presentation.resources.CreateRouteResource;
 import com.example.cryoguard.logistics.presentation.resources.RouteLocationResource;
 import com.example.cryoguard.logistics.presentation.resources.RouteResource;
 import com.example.cryoguard.logistics.presentation.resources.UpdateRouteResource;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class RouteAssembler {
 
     public static RouteResource toResource(Route route) {
+        RouteResource.GpsCoordinatesResource currentLocationResource = null;
+        GpsCoordinates currentLocation = route.getCurrentLocation();
+        if (currentLocation != null) {
+            currentLocationResource = new RouteResource.GpsCoordinatesResource(
+                currentLocation.getLatitude(),
+                currentLocation.getLongitude()
+            );
+        }
+
         return new RouteResource(
             route.getId(),
             route.getRouteId(),
             route.getName(),
             route.getContainerId(),
             route.getStatus(),
-            route.getStartLocation(),
-            route.getEndLocation(),
+            route.getOrigin(),
+            route.getDestination(),
             route.getDistanceKm(),
             route.getEstimatedDurationMinutes(),
             route.getCheckpoints(),
             route.getStartTime(),
-            route.getEndTime()
+            route.getEstimatedArrival(),
+            route.getEndTime(),
+            currentLocationResource
         );
     }
 
@@ -35,24 +48,26 @@ public class RouteAssembler {
         return new CreateRouteCommand(
             resource.name(),
             resource.containerId(),
-            resource.startLocation(),
-            resource.endLocation(),
+            resource.origin(),
+            resource.destination(),
             resource.distanceKm(),
             resource.estimatedDurationMinutes(),
             resource.checkpoints(),
-            resource.startTime()
+            resource.startTime(),
+            resource.estimatedArrival()
         );
     }
 
     public static UpdateRouteCommand toUpdateCommand(UpdateRouteResource resource) {
         return new UpdateRouteCommand(
             resource.name(),
-            resource.startLocation(),
-            resource.endLocation(),
+            resource.origin(),
+            resource.destination(),
             resource.distanceKm(),
             resource.estimatedDurationMinutes(),
             resource.checkpoints(),
-            resource.startTime()
+            resource.startTime(),
+            resource.estimatedArrival()
         );
     }
 

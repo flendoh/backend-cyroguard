@@ -8,10 +8,11 @@ import java.time.LocalDateTime;
 public record CreateRouteResource(
     @NotBlank String name,
     @NotNull Long containerId,
-    String startLocation,
-    String endLocation,
+    String origin,
+    String destination,
     BigDecimal distanceKm,
     Integer estimatedDurationMinutes,
     Integer checkpoints,
-    LocalDateTime startTime
+    LocalDateTime startTime,
+    LocalDateTime estimatedArrival
 ) {}

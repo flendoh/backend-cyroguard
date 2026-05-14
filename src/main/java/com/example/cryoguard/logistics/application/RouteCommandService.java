@@ -40,13 +40,14 @@ public class RouteCommandService {
             routeId,
             command.name(),
             command.containerId(),
-            RouteStatus.ACTIVE,
-            command.startLocation(),
-            command.endLocation(),
+            RouteStatus.active,
+            command.origin(),
+            command.destination(),
             command.distanceKm(),
             command.estimatedDurationMinutes(),
             command.checkpoints(),
-            command.startTime()
+            command.startTime(),
+            command.estimatedArrival()
         );
         return routeRepository.save(route);
     }
@@ -55,23 +56,30 @@ public class RouteCommandService {
         Route route = routeRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Route not found: " + id));
         route.setName(command.name());
-        route.setStartLocation(command.startLocation());
-        route.setEndLocation(command.endLocation());
+        route.setOrigin(command.origin());
+        route.setDestination(command.destination());
         route.setDistanceKm(command.distanceKm());
         route.setEstimatedDurationMinutes(command.estimatedDurationMinutes());
         route.setCheckpoints(command.checkpoints());
         route.setStartTime(command.startTime());
+        route.setEstimatedArrival(command.estimatedArrival());
         return routeRepository.save(route);
     }
 
     public Route completeRoute(Long id, CompleteRouteCommand command) {
         Route route = routeRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Route not found: " + id));
-        if (route.getStatus() != RouteStatus.ACTIVE) {
+        if (route.getStatus() != RouteStatus.active) {
             throw new IllegalStateException("Only active routes can be completed");
         }
         route.complete();
         return routeRepository.save(route);
+    }
+
+    public void deleteRoute(Long id) {
+        Route route = routeRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Route not found: " + id));
+        routeRepository.delete(route);
     }
 
     public RouteLocationHistory recordLocation(Long routeId, RecordRouteLocationCommand command) {
@@ -97,13 +105,13 @@ public class RouteCommandService {
         Set<String> activeAuthorizedZones = new HashSet<>();
         Set<String> activeRestrictedZones = new HashSet<>();
 
-        geofenceRepository.findByStatus(GeofenceStatus.ACTIVE).forEach(geofence -> {
+        geofenceRepository.findByStatus(GeofenceStatus.active).forEach(geofence -> {
             boolean isInside = geofence.containsPoint(latitude, longitude);
-            if (geofence.getType() == GeofenceType.AUTHORIZED_ZONE) {
+            if (geofence.getType() == GeofenceType.circle) {
                 if (!isInside) {
                     activeAuthorizedZones.add(geofence.getName());
                 }
-            } else if (geofence.getType() == GeofenceType.RESTRICTED_ZONE) {
+            } else if (geofence.getType() == GeofenceType.polygon) {
                 if (isInside) {
                     activeRestrictedZones.add(geofence.getName());
                 }

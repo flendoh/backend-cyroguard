@@ -1,6 +1,7 @@
 package com.example.cryoguard.logistics.domain.aggregates;
 
 import com.example.cryoguard.logistics.domain.valueobjects.RouteStatus;
+import com.example.cryoguard.logistics.domain.valueobjects.GpsCoordinates;
 import com.example.cryoguard.logistics.domain.entities.RouteCheckpoint;
 import com.example.cryoguard.logistics.domain.entities.RouteLocationHistory;
 import com.example.cryoguard.shared.domain.model.aggregates.AuditableAbstractAggregateRoot;
@@ -27,11 +28,11 @@ public class Route extends AuditableAbstractAggregateRoot<Route> {
     @Column(nullable = false)
     private RouteStatus status;
 
-    @Column(name = "start_location")
-    private String startLocation;
+    @Column(name = "origin", length = 200)
+    private String origin;
 
-    @Column(name = "end_location")
-    private String endLocation;
+    @Column(name = "destination", length = 200)
+    private String destination;
 
     @Column(name = "distance_km", precision = 10, scale = 2)
     private BigDecimal distanceKm;
@@ -45,8 +46,14 @@ public class Route extends AuditableAbstractAggregateRoot<Route> {
     @Column(name = "start_time")
     private LocalDateTime startTime;
 
+    @Column(name = "estimated_arrival")
+    private LocalDateTime estimatedArrival;
+
     @Column(name = "end_time")
     private LocalDateTime endTime;
+
+    @Embedded
+    private GpsCoordinates currentLocation;
 
     @OneToMany(mappedBy = "route", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RouteCheckpoint> checkpointsList = new ArrayList<>();
@@ -57,18 +64,20 @@ public class Route extends AuditableAbstractAggregateRoot<Route> {
     public Route() {}
 
     public Route(String routeId, String name, Long containerId, RouteStatus status,
-                 String startLocation, String endLocation, BigDecimal distanceKm,
-                 Integer estimatedDurationMinutes, Integer checkpoints, LocalDateTime startTime) {
+                 String origin, String destination, BigDecimal distanceKm,
+                 Integer estimatedDurationMinutes, Integer checkpoints, LocalDateTime startTime,
+                 LocalDateTime estimatedArrival) {
         this.routeId = routeId;
         this.name = name;
         this.containerId = containerId;
         this.status = status;
-        this.startLocation = startLocation;
-        this.endLocation = endLocation;
+        this.origin = origin;
+        this.destination = destination;
         this.distanceKm = distanceKm;
         this.estimatedDurationMinutes = estimatedDurationMinutes;
         this.checkpoints = checkpoints;
         this.startTime = startTime;
+        this.estimatedArrival = estimatedArrival;
     }
 
     public String getRouteId() { return routeId; }
@@ -83,11 +92,11 @@ public class Route extends AuditableAbstractAggregateRoot<Route> {
     public RouteStatus getStatus() { return status; }
     public void setStatus(RouteStatus status) { this.status = status; }
 
-    public String getStartLocation() { return startLocation; }
-    public void setStartLocation(String startLocation) { this.startLocation = startLocation; }
+    public String getOrigin() { return origin; }
+    public void setOrigin(String origin) { this.origin = origin; }
 
-    public String getEndLocation() { return endLocation; }
-    public void setEndLocation(String endLocation) { this.endLocation = endLocation; }
+    public String getDestination() { return destination; }
+    public void setDestination(String destination) { this.destination = destination; }
 
     public BigDecimal getDistanceKm() { return distanceKm; }
     public void setDistanceKm(BigDecimal distanceKm) { this.distanceKm = distanceKm; }
@@ -101,8 +110,14 @@ public class Route extends AuditableAbstractAggregateRoot<Route> {
     public LocalDateTime getStartTime() { return startTime; }
     public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }
 
+    public LocalDateTime getEstimatedArrival() { return estimatedArrival; }
+    public void setEstimatedArrival(LocalDateTime estimatedArrival) { this.estimatedArrival = estimatedArrival; }
+
     public LocalDateTime getEndTime() { return endTime; }
     public void setEndTime(LocalDateTime endTime) { this.endTime = endTime; }
+
+    public GpsCoordinates getCurrentLocation() { return currentLocation; }
+    public void setCurrentLocation(GpsCoordinates currentLocation) { this.currentLocation = currentLocation; }
 
     public List<RouteCheckpoint> getCheckpointsList() { return checkpointsList; }
     public void setCheckpointsList(List<RouteCheckpoint> checkpointsList) { this.checkpointsList = checkpointsList; }
@@ -121,7 +136,7 @@ public class Route extends AuditableAbstractAggregateRoot<Route> {
     }
 
     public void complete() {
-        this.status = RouteStatus.COMPLETED;
+        this.status = RouteStatus.completed;
         this.endTime = LocalDateTime.now();
     }
 }

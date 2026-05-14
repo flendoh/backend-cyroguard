@@ -10,11 +10,15 @@ public record RouteResource(
     String name,
     Long containerId,
     RouteStatus status,
-    String startLocation,
-    String endLocation,
+    String origin,
+    String destination,
     BigDecimal distanceKm,
     Integer estimatedDurationMinutes,
     Integer checkpoints,
     LocalDateTime startTime,
-    LocalDateTime endTime
-) {}
+    LocalDateTime estimatedArrival,
+    LocalDateTime endTime,
+    GpsCoordinatesResource currentLocation
+) {
+    public record GpsCoordinatesResource(BigDecimal lat, BigDecimal lng) {}
+}

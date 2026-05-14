@@ -1,7 +1,20 @@
 package com.example.cryoguard.logistics.domain.valueobjects;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 public enum RouteStatus {
-    ACTIVE,
-    COMPLETED,
-    CANCELLED
+    active("active"),
+    completed("completed"),
+    cancelled("cancelled");
+
+    private final String value;
+
+    RouteStatus(String value) {
+        this.value = value;
+    }
+
+    @JsonValue
+    public String getValue() {
+        return value;
+    }
 }

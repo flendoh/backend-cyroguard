@@ -30,6 +30,6 @@ public class GeofenceQueryService {
     }
 
     public List<Geofence> getActiveGeofences() {
-        return geofenceRepository.findByStatus(GeofenceStatus.ACTIVE);
+        return geofenceRepository.findByStatus(GeofenceStatus.active);
     }
 }

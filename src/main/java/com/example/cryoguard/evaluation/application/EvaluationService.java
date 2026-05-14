@@ -26,42 +26,39 @@ public class EvaluationService {
     public List<Alert> evaluateTelemetry(Long containerId, TelemetryReading reading) {
         List<Alert> alerts = new ArrayList<>();
 
-        Optional<MonitoringRule> ruleOpt = monitoringRuleRepository.findByContainerIdAndActiveTrue(containerId);
-        if (ruleOpt.isEmpty()) {
+        List<MonitoringRule> rules = monitoringRuleRepository.findByContainerIdAndActiveTrue(containerId);
+        if (rules.isEmpty()) {
             return alerts;
         }
 
-        MonitoringRule rule = ruleOpt.get();
+        Map<String, BigDecimal> paramMap = buildParameterMap(rules);
 
         if (reading.getTemperature() != null) {
-            checkTemperatureRisk(containerId, reading.getTemperature(), reading.getHumidity(), rule)
+            checkTemperatureRisk(containerId, reading.getTemperature(), reading.getHumidity(), paramMap)
                     .ifPresent(alerts::add);
         }
 
         if (reading.getHumidity() != null) {
-            checkHumidityRisk(containerId, reading.getHumidity(), rule)
+            checkHumidityRisk(containerId, reading.getHumidity(), paramMap)
                     .ifPresent(alerts::add);
         }
 
         if (reading.getVibration() != null) {
-            checkVibrationRisk(containerId, reading.getVibration(), rule)
+            checkVibrationRisk(containerId, reading.getVibration(), paramMap)
                     .ifPresent(alerts::add);
         }
 
         if (reading.getDoorOpen() != null && reading.getDoorOpenDurationMinutes() != null) {
-            checkDoorStatus(containerId, reading.getDoorOpen(), reading.getDoorOpenDurationMinutes(), rule)
+            checkDoorStatus(containerId, reading.getDoorOpen(), reading.getDoorOpenDurationMinutes(), paramMap)
                     .ifPresent(alerts::add);
         }
 
         return alerts;
     }
 
-    public Optional<Alert> checkTemperatureRisk(Long containerId, BigDecimal temperature, BigDecimal humidity, MonitoringRule rule) {
-        Map<String, BigDecimal> paramMap = buildParameterMap(rule);
-
+    public Optional<Alert> checkTemperatureRisk(Long containerId, BigDecimal temperature, BigDecimal humidity, Map<String, BigDecimal> paramMap) {
         BigDecimal minTemp = paramMap.get("temperature_min");
         BigDecimal maxTemp = paramMap.get("temperature_max");
-        BigDecimal warningOffset = paramMap.get("temperature_warning_offset");
 
         if (minTemp == null || maxTemp == null) {
             return Optional.empty();
@@ -80,44 +77,11 @@ public class EvaluationService {
             return Optional.of(alertCommandService.createAlert(command));
         }
 
-        if (warningOffset != null) {
-            BigDecimal warningMax = maxTemp.subtract(warningOffset);
-            BigDecimal warningMin = minTemp.add(warningOffset);
-            if (temperature.compareTo(warningMax) > 0 || temperature.compareTo(warningMin) < 0) {
-                CreateAlertCommand command = new CreateAlertCommand(
-                        containerId,
-                        AlertSeverity.WARNING,
-                        AlertType.TEMPERATURE,
-                        String.format("Temperature %s°C approaching limit [%s°C - %s°C]",
-                                temperature, minTemp, maxTemp),
-                        null,
-                        null
-                );
-                return Optional.of(alertCommandService.createAlert(command));
-            }
-        }
-
         return Optional.empty();
     }
 
-    public Optional<Alert> checkVibrationRisk(Long containerId, BigDecimal vibration, MonitoringRule rule) {
-        Map<String, BigDecimal> paramMap = buildParameterMap(rule);
-
-        BigDecimal criticalVibration = paramMap.get("critical_vibration");
-        BigDecimal maxVibration = paramMap.get("max_vibration");
-
-        if (criticalVibration != null && vibration.compareTo(criticalVibration) > 0) {
-            CreateAlertCommand command = new CreateAlertCommand(
-                    containerId,
-                    AlertSeverity.CRITICAL,
-                    AlertType.VIBRATION,
-                    String.format("Critical vibration detected: %s (max: %s)",
-                            vibration, criticalVibration),
-                    null,
-                    null
-            );
-            return Optional.of(alertCommandService.createAlert(command));
-        }
+    public Optional<Alert> checkVibrationRisk(Long containerId, BigDecimal vibration, Map<String, BigDecimal> paramMap) {
+        BigDecimal maxVibration = paramMap.get("vibration_threshold");
 
         if (maxVibration != null && vibration.compareTo(maxVibration) > 0) {
             CreateAlertCommand command = new CreateAlertCommand(
@@ -135,28 +99,7 @@ public class EvaluationService {
         return Optional.empty();
     }
 
-    public Optional<Alert> checkDoorStatus(Long containerId, boolean doorOpen, int durationMinutes, MonitoringRule rule) {
-        Map<String, BigDecimal> paramMap = buildParameterMap(rule);
-
-        BigDecimal maxOpenDuration = paramMap.get("max_door_open_minutes");
-
-        if (maxOpenDuration == null) {
-            return Optional.empty();
-        }
-
-        if (doorOpen && durationMinutes > maxOpenDuration.intValue()) {
-            CreateAlertCommand command = new CreateAlertCommand(
-                    containerId,
-                    AlertSeverity.CRITICAL,
-                    AlertType.DOOR,
-                    String.format("Door open for %d minutes (max: %s)",
-                            durationMinutes, maxOpenDuration),
-                    null,
-                    null
-            );
-            return Optional.of(alertCommandService.createAlert(command));
-        }
-
+    public Optional<Alert> checkDoorStatus(Long containerId, boolean doorOpen, int durationMinutes, Map<String, BigDecimal> paramMap) {
         if (doorOpen && durationMinutes > 0) {
             CreateAlertCommand command = new CreateAlertCommand(
                     containerId,
@@ -172,12 +115,9 @@ public class EvaluationService {
         return Optional.empty();
     }
 
-    public Optional<Alert> checkHumidityRisk(Long containerId, BigDecimal humidity, MonitoringRule rule) {
-        Map<String, BigDecimal> paramMap = buildParameterMap(rule);
-
+    public Optional<Alert> checkHumidityRisk(Long containerId, BigDecimal humidity, Map<String, BigDecimal> paramMap) {
         BigDecimal minHumidity = paramMap.get("humidity_min");
         BigDecimal maxHumidity = paramMap.get("humidity_max");
-        BigDecimal warningOffset = paramMap.get("humidity_warning_offset");
 
         if (minHumidity == null || maxHumidity == null) {
             return Optional.empty();
@@ -199,18 +139,13 @@ public class EvaluationService {
         return Optional.empty();
     }
 
-    private Map<String, BigDecimal> buildParameterMap(MonitoringRule rule) {
-        return Map.of(
-                "temperature_min", rule.getTemperatureMin(),
-                "temperature_max", rule.getTemperatureMax(),
-                "temperature_warning_offset", rule.getTemperatureWarningOffset(),
-                "humidity_min", rule.getHumidityMin(),
-                "humidity_max", rule.getHumidityMax(),
-                "humidity_warning_offset", rule.getHumidityWarningOffset(),
-                "max_vibration", rule.getMaxVibration(),
-                "critical_vibration", rule.getCriticalVibration(),
-                "max_door_open_minutes", rule.getMaxDoorOpenMinutes() != null ? BigDecimal.valueOf(rule.getMaxDoorOpenMinutes()) : null
-        );
+    private Map<String, BigDecimal> buildParameterMap(List<MonitoringRule> rules) {
+        return rules.stream()
+                .collect(Collectors.toMap(
+                        MonitoringRule::getParameter,
+                        MonitoringRule::getThresholdValue,
+                        (v1, v2) -> v1
+                ));
     }
 
     public static class TelemetryReading {

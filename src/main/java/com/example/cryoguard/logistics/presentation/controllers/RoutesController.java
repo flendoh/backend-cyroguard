@@ -25,7 +25,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/routes")
@@ -77,6 +76,13 @@ public class RoutesController {
         UpdateRouteCommand command = RouteAssembler.toUpdateCommand(resource);
         RouteResource updated = RouteAssembler.toResource(commandService.updateRoute(id, command));
         return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete route", description = "Removes a route by its unique identifier.")
+    public ResponseEntity<Void> deleteRoute(@PathVariable Long id) {
+        commandService.deleteRoute(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/complete")

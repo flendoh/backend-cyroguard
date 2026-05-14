@@ -2,9 +2,12 @@ package com.example.cryoguard.logistics.domain.entities;
 
 import com.example.cryoguard.logistics.domain.valueobjects.GeofenceStatus;
 import com.example.cryoguard.logistics.domain.valueobjects.GeofenceType;
+import com.example.cryoguard.logistics.domain.valueobjects.Coordinate;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "geofences")
@@ -28,13 +31,11 @@ public class Geofence {
     @Column(nullable = false)
     private GeofenceStatus status;
 
-    @Column(name = "center_latitude", nullable = false, precision = 10, scale = 7)
-    private BigDecimal centerLatitude;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "geofence_coordinates", joinColumns = @JoinColumn(name = "geofence_id"))
+    private List<Coordinate> coordinates = new ArrayList<>();
 
-    @Column(name = "center_longitude", nullable = false, precision = 10, scale = 7)
-    private BigDecimal centerLongitude;
-
-    @Column(name = "radius_meters", nullable = false, precision = 10, scale = 2)
+    @Column(name = "radius_meters", precision = 10, scale = 2)
     private BigDecimal radiusMeters;
 
     @Column(name = "created_at", nullable = false)
@@ -43,14 +44,13 @@ public class Geofence {
     public Geofence() {}
 
     public Geofence(String geofenceId, String name, GeofenceType type, GeofenceStatus status,
-                   BigDecimal centerLatitude, BigDecimal centerLongitude, BigDecimal radiusMeters,
+                   List<Coordinate> coordinates, BigDecimal radiusMeters,
                    LocalDateTime createdAt) {
         this.geofenceId = geofenceId;
         this.name = name;
         this.type = type;
         this.status = status;
-        this.centerLatitude = centerLatitude;
-        this.centerLongitude = centerLongitude;
+        this.coordinates = coordinates;
         this.radiusMeters = radiusMeters;
         this.createdAt = createdAt;
     }
@@ -70,11 +70,8 @@ public class Geofence {
     public GeofenceStatus getStatus() { return status; }
     public void setStatus(GeofenceStatus status) { this.status = status; }
 
-    public BigDecimal getCenterLatitude() { return centerLatitude; }
-    public void setCenterLatitude(BigDecimal centerLatitude) { this.centerLatitude = centerLatitude; }
-
-    public BigDecimal getCenterLongitude() { return centerLongitude; }
-    public void setCenterLongitude(BigDecimal centerLongitude) { this.centerLongitude = centerLongitude; }
+    public List<Coordinate> getCoordinates() { return coordinates; }
+    public void setCoordinates(List<Coordinate> coordinates) { this.coordinates = coordinates; }
 
     public BigDecimal getRadiusMeters() { return radiusMeters; }
     public void setRadiusMeters(BigDecimal radiusMeters) { this.radiusMeters = radiusMeters; }
@@ -83,11 +80,15 @@ public class Geofence {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public boolean containsPoint(BigDecimal latitude, BigDecimal longitude) {
-        double distance = calculateDistance(
-            centerLatitude.doubleValue(), centerLongitude.doubleValue(),
-            latitude.doubleValue(), longitude.doubleValue()
-        );
-        return distance <= radiusMeters.doubleValue();
+        if (type == GeofenceType.circle && !coordinates.isEmpty()) {
+            Coordinate center = coordinates.get(0);
+            double distance = calculateDistance(
+                center.getLatitude().doubleValue(), center.getLongitude().doubleValue(),
+                latitude.doubleValue(), longitude.doubleValue()
+            );
+            return distance <= radiusMeters.doubleValue();
+        }
+        return false;
     }
 
     private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {

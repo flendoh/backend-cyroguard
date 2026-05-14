@@ -22,35 +22,17 @@ public class MonitoringRule {
     @Column(name = "container_id", nullable = false)
     private Long containerId;
 
-    @Column(name = "temperature_min", precision = 10, scale = 2)
-    private BigDecimal temperatureMin;
+    @Column(name = "parameter", nullable = false)
+    private String parameter;
 
-    @Column(name = "temperature_max", precision = 10, scale = 2)
-    private BigDecimal temperatureMax;
+    @Column(name = "threshold_value", precision = 10, scale = 2)
+    private BigDecimal thresholdValue;
 
-    @Column(name = "temperature_warning_offset", precision = 10, scale = 2)
-    private BigDecimal temperatureWarningOffset;
-
-    @Column(name = "humidity_min", precision = 10, scale = 2)
-    private BigDecimal humidityMin;
-
-    @Column(name = "humidity_max", precision = 10, scale = 2)
-    private BigDecimal humidityMax;
-
-    @Column(name = "humidity_warning_offset", precision = 10, scale = 2)
-    private BigDecimal humidityWarningOffset;
-
-    @Column(name = "max_vibration", precision = 10, scale = 2)
-    private BigDecimal maxVibration;
-
-    @Column(name = "max_door_open_minutes")
-    private Integer maxDoorOpenMinutes;
+    @Column(name = "unit", nullable = false)
+    private String unit;
 
     @Column(name = "active")
     private Boolean active = true;
-
-    @Column(name = "critical_vibration", precision = 10, scale = 2)
-    private BigDecimal criticalVibration;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;

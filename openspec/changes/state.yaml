@@ -1,25 +1,25 @@
 change: refactor-backend-complete
 created: 2026-05-14
-status: tasks_completed
+status: apply_in_progress
 
 phases:
   proposal: completed
   specs: completed
   design: completed
   tasks: completed
-  apply: pending
+  apply: in_progress
   verify: pending
   archive: pending
 
 contexts:
-  iam: pending (partial existing)
-  monitoring: pending (partial existing)
-  evaluation: pending (partial existing)
-  logistics: pending (partial existing)
-  actuators: pending (new)
-  operations: pending (new)
-  notifications: pending (new)
-  audit: pending (new)
+  iam: completed
+  monitoring: completed
+  evaluation: completed
+  logistics: completed
+  actuators: pending
+  operations: pending
+  notifications: pending
+  audit: pending
 
 artifacts:
   # Proposal
@@ -43,37 +43,40 @@ artifacts:
   - openspec/changes/design-new-contexts.md
 
   # Tasks
-  - openspec/changes/tasks.md (overview)
+  - openspec/changes/tasks.md
   - openspec/changes/tasks-iam-monitoring.md
   - openspec/changes/tasks-evaluation-logistics.md
   - openspec/changes/tasks-new-contexts.md
 
 frontend_coverage:
-  users: iam
-  login: iam
-  containers: monitoring
-  monitoring: monitoring
-  dashboard_home: monitoring
-  alerts: evaluation
-  routes: logistics
-  geofences: logistics
+  users: iam ✅
+  login: iam ✅
+  containers: monitoring ✅
+  monitoring: monitoring ✅
+  dashboard_home: monitoring ✅
+  alerts: evaluation ✅
+  routes: logistics ✅
+  geofences: logistics ✅
   reports: logistics (future)
-  audit_logs: audit
-  settings: evaluation + notifications
+  audit_logs: audit ❌
+  settings: evaluation + notifications ❌
 
 gaps_not_in_frontend:
   - actuators: No UI yet (device-side)
   - operations: No UI yet (mobile app future)
   - notifications: Settings config only, no notifications list UI
 
-implementation_order:
-  - iam
-  - monitoring
-  - evaluation
-  - logistics
-  - audit
-  - actuators
-  - operations
-  - notifications
+implementation_status:
+  completed:
+    - IAM: login endpoint, user CRUD, lowercase roles/status
+    - Monitoring: container CRUD, telemetry, events, lowercase status
+    - Evaluation: alerts CRUD, acknowledge/resolve/escalate, monitoring rules
+    - Logistics: route CRUD, geofence CRUD, lowercase status/type, coordinates list
 
-next_phase: apply
+  pending:
+    - Audit: audit-logs endpoint (needed for AuditLogs frontend page)
+    - Actuators: no frontend UI yet
+    - Operations: no frontend UI yet
+    - Notifications: no frontend UI yet
+
+next_phase: verify

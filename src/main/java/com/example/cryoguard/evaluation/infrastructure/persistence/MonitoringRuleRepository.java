@@ -12,7 +12,7 @@ public interface MonitoringRuleRepository extends JpaRepository<MonitoringRule, 
 
     List<MonitoringRule> findByContainerId(Long containerId);
 
-    Optional<MonitoringRule> findByContainerIdAndActiveTrue(Long containerId);
+    List<MonitoringRule> findByContainerIdAndActiveTrue(Long containerId);
 
     List<MonitoringRule> findByActiveTrue();
 }

@@ -9,15 +9,25 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
 public class MonitoringRuleCommandServiceImpl implements MonitoringRuleCommandService {
 
     private final MonitoringRuleRepository monitoringRuleRepository;
+
+    private static final Map<String, String> PARAMETER_UNITS = Map.of(
+            "temperature_min", "°C",
+            "temperature_max", "°C",
+            "humidity_min", "%",
+            "humidity_max", "%",
+            "vibration_threshold", "g"
+    );
 
     @Override
     @Transactional
@@ -33,38 +43,30 @@ public class MonitoringRuleCommandServiceImpl implements MonitoringRuleCommandSe
             validateValue(update.getParameter(), update.getValue());
         }
 
-        List<MonitoringRule> existingRules = monitoringRuleRepository.findAll();
+        Map<String, MonitoringRule> existingRulesMap = new HashMap<>();
+        for (MonitoringRule rule : monitoringRuleRepository.findAll()) {
+            existingRulesMap.put(rule.getParameter(), rule);
+        }
 
-        if (existingRules.isEmpty()) {
-            MonitoringRule newRule = new MonitoringRule();
-            newRule.setContainerId(1L);
-            newRule.setActive(true);
-            applyUpdatesToRule(newRule, updates);
-            newRule.setUpdatedAt(LocalDateTime.now());
-            monitoringRuleRepository.save(newRule);
-        } else {
-            MonitoringRule rule = existingRules.get(0);
-            applyUpdatesToRule(rule, updates);
+        for (MonitoringRuleUpdateResource update : updates) {
+            String param = update.getParameter();
+            BigDecimal value = update.getValue();
+            String unit = PARAMETER_UNITS.get(param);
+
+            MonitoringRule rule = existingRulesMap.get(param);
+            if (rule == null) {
+                rule = new MonitoringRule();
+                rule.setContainerId(1L);
+                rule.setParameter(param);
+                rule.setUnit(unit);
+                rule.setActive(true);
+            }
+            rule.setThresholdValue(value);
             rule.setUpdatedAt(LocalDateTime.now());
             monitoringRuleRepository.save(rule);
         }
 
         return monitoringRuleRepository.findAll();
-    }
-
-    private void applyUpdatesToRule(MonitoringRule rule, List<MonitoringRuleUpdateResource> updates) {
-        for (MonitoringRuleUpdateResource update : updates) {
-            String param = update.getParameter();
-            BigDecimal value = update.getValue();
-
-            switch (param) {
-                case "temperature_min" -> rule.setTemperatureMin(value);
-                case "temperature_max" -> rule.setTemperatureMax(value);
-                case "humidity_min" -> rule.setHumidityMin(value);
-                case "humidity_max" -> rule.setHumidityMax(value);
-                case "vibration_threshold" -> rule.setMaxVibration(value);
-            }
-        }
     }
 
     private void validateValue(String parameter, BigDecimal value) {
@@ -79,12 +81,12 @@ public class MonitoringRuleCommandServiceImpl implements MonitoringRuleCommandSe
                 }
             }
             case "humidity_min", "humidity_max" -> {
-                if (value.compareTo(new BigDecimal("0")) < 0 || value.compareTo(new BigDecimal("100")) > 0) {
+                if (value.compareTo(new BigDecimal("0")) < 0 || value.compareTo(new BigDecimal("100")) > 100) {
                     throw new IllegalArgumentException("Humidity value must be between 0 and 100");
                 }
             }
             case "vibration_threshold" -> {
-                if (value.compareTo(new BigDecimal("0")) < 0 || value.compareTo(new BigDecimal("100")) > 0) {
+                if (value.compareTo(new BigDecimal("0")) < 0 || value.compareTo(new BigDecimal("100")) > 100) {
                     throw new IllegalArgumentException("Vibration threshold must be between 0 and 100");
                 }
             }

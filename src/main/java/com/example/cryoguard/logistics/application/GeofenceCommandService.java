@@ -2,10 +2,13 @@ package com.example.cryoguard.logistics.application;
 
 import com.example.cryoguard.logistics.domain.commands.CreateGeofenceCommand;
 import com.example.cryoguard.logistics.domain.entities.Geofence;
+import com.example.cryoguard.logistics.domain.valueobjects.Coordinate;
 import com.example.cryoguard.logistics.domain.valueobjects.GeofenceStatus;
 import com.example.cryoguard.logistics.infrastructure.persistence.GeofenceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @Transactional
@@ -19,13 +22,15 @@ public class GeofenceCommandService {
 
     public Geofence createGeofence(CreateGeofenceCommand command) {
         String geofenceId = generateGeofenceId();
+        List<Coordinate> coordinates = command.coordinates().stream()
+            .map(c -> new Coordinate(c.latitude(), c.longitude()))
+            .toList();
         Geofence geofence = new Geofence(
             geofenceId,
             command.name(),
             command.type(),
-            GeofenceStatus.ACTIVE,
-            command.centerLatitude(),
-            command.centerLongitude(),
+            GeofenceStatus.active,
+            coordinates,
             command.radiusMeters(),
             java.time.LocalDateTime.now()
         );
@@ -37,8 +42,10 @@ public class GeofenceCommandService {
             .orElseThrow(() -> new IllegalArgumentException("Geofence not found: " + id));
         geofence.setName(command.name());
         geofence.setType(command.type());
-        geofence.setCenterLatitude(command.centerLatitude());
-        geofence.setCenterLongitude(command.centerLongitude());
+        List<Coordinate> coordinates = command.coordinates().stream()
+            .map(c -> new Coordinate(c.latitude(), c.longitude()))
+            .toList();
+        geofence.setCoordinates(coordinates);
         geofence.setRadiusMeters(command.radiusMeters());
         return geofenceRepository.save(geofence);
     }
