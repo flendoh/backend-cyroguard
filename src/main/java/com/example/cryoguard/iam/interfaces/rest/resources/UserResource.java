@@ -1,28 +1,28 @@
 package com.example.cryoguard.iam.interfaces.rest.resources;
 
-import com.example.cryoguard.iam.domain.model.aggregates.User;
-
-import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Date;
 
 /**
  * User resource
  * <p>
  *     This record represents the resource for a user in responses.
+ *     All strings are lowercase as per frontend expectations.
  * </p>
  * @param id the user id
- * @param username the username
- * @param email the email
- * @param roles the roles
- * @param status the status (ACTIVE or INACTIVE)
+ * @param name the user's full name
+ * @param email the user's email
+ * @param role the user's role (lowercase: admin, operator, supervisor, ngo)
+ * @param status the user's status (lowercase: active, inactive, locked)
  * @param lastLogin the last login timestamp
+ * @param createdAt the creation timestamp
  */
 public record UserResource(
     Long id,
-    String username,
+    String name,
     String email,
-    List<String> roles,
-    User.UserStatus status,
-    LocalDateTime lastLogin
+    String role,
+    String status,
+    Date lastLogin,
+    Date createdAt
 ) {
 }

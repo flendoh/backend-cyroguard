@@ -1,19 +1,25 @@
 package com.example.cryoguard.iam.interfaces.rest;
 
 import com.example.cryoguard.iam.domain.model.aggregates.User;
+import com.example.cryoguard.iam.domain.model.commands.SignUpCommand;
 import com.example.cryoguard.iam.domain.model.commands.UpdateUserCommand;
 import com.example.cryoguard.iam.domain.model.queries.GetAllUsersQuery;
 import com.example.cryoguard.iam.domain.model.queries.GetUserByIdQuery;
 import com.example.cryoguard.iam.domain.services.UserCommandService;
 import com.example.cryoguard.iam.domain.services.UserQueryService;
+import com.example.cryoguard.iam.interfaces.rest.resources.SignUpResource;
 import com.example.cryoguard.iam.interfaces.rest.resources.UpdateUserResource;
 import com.example.cryoguard.iam.interfaces.rest.resources.UserResource;
+import com.example.cryoguard.iam.interfaces.rest.transform.SignUpCommandFromResourceAssembler;
 import com.example.cryoguard.iam.interfaces.rest.transform.UpdateUserCommandFromResourceAssembler;
 import com.example.cryoguard.iam.interfaces.rest.transform.UserResourceFromEntityAssembler;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -41,18 +47,28 @@ public class UsersController {
     }
 
     /**
-     * Get all users
-     * @return list of all users
+     * Get all users with pagination, search, and filtering
+     * @param search optional search term for name or email
+     * @param role optional role filter (lowercase)
+     * @param status optional status filter (lowercase)
+     * @param page page number (0-indexed, default 0)
+     * @param size page size (default 20)
+     * @return paginated list of users
      */
     @GetMapping
-    @Operation(summary = "Get all users", description = "Get all users in the system.")
+    @Operation(summary = "Get all users", description = "Get all users in the system with pagination, search, and filtering.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Users retrieved successfully."),
             @ApiResponse(responseCode = "401", description = "Unauthorized.")})
-    public ResponseEntity<List<UserResource>> getAllUsers() {
-        var getAllUsersQuery = new GetAllUsersQuery();
-        var users = userQueryService.handle(getAllUsersQuery);
-        var userResources = users.stream().map(UserResourceFromEntityAssembler::toResourceFromEntity).toList();
+    public ResponseEntity<Page<UserResource>> getAllUsers(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        var getAllUsersQuery = new GetAllUsersQuery(search, role, status, page, size);
+        var usersPage = userQueryService.handle(getAllUsersQuery);
+        var userResources = usersPage.map(UserResourceFromEntityAssembler::toResourceFromEntity);
         return ResponseEntity.ok(userResources);
     }
 
@@ -78,12 +94,33 @@ public class UsersController {
     }
 
     /**
+     * Create a new user (POST /users)
+     * @param signUpResource the user creation request
+     * @return the created user resource
+     */
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Create user", description = "Create a new user in the system.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "User created successfully."),
+            @ApiResponse(responseCode = "400", description = "Bad request."),
+            @ApiResponse(responseCode = "401", description = "Unauthorized.")})
+    public ResponseEntity<UserResource> createUser(@RequestBody SignUpResource signUpResource) {
+        var signUpCommand = SignUpCommandFromResourceAssembler.toCommandFromResource(signUpResource);
+        var user = userCommandService.handle(signUpCommand);
+        if (user.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        var userResource = UserResourceFromEntityAssembler.toResourceFromEntity(user.get());
+        return new ResponseEntity<>(userResource, HttpStatus.CREATED);
+    }
+
+    /**
      * Update user
      * @param userId the user id
      * @param updateUserResource the update request
      * @return the updated user resource
      */
-    @PutMapping(value = "/{userId}")
+    @PutMapping(value = "/{userId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Update user", description = "Update the user with the given id.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User updated successfully."),
@@ -100,17 +137,17 @@ public class UsersController {
     }
 
     /**
-     * Disable user
+     * Delete (soft) user
      * @param userId the user id
      * @return no content
      */
     @DeleteMapping(value = "/{userId}")
-    @Operation(summary = "Disable user", description = "Disable the user with the given id.")
+    @Operation(summary = "Delete user", description = "Soft delete the user with the given id.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "User disabled successfully."),
+            @ApiResponse(responseCode = "204", description = "User deleted successfully."),
             @ApiResponse(responseCode = "404", description = "User not found."),
             @ApiResponse(responseCode = "401", description = "Unauthorized.")})
-    public ResponseEntity<Void> disableUser(@PathVariable Long userId) {
+    public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
         var disableUserCommand = new com.example.cryoguard.iam.domain.model.commands.DisableUserCommand(userId);
         userCommandService.handle(disableUserCommand);
         return ResponseEntity.noContent().build();

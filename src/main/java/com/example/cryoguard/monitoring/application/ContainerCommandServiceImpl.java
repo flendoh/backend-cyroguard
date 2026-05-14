@@ -5,7 +5,8 @@ import com.example.cryoguard.monitoring.domain.commands.CreateContainerCommand;
 import com.example.cryoguard.monitoring.domain.commands.SyncContainerCommand;
 import com.example.cryoguard.monitoring.domain.commands.UpdateContainerTelemetryCommand;
 import com.example.cryoguard.monitoring.domain.entities.TelemetryReading;
-import com.example.cryoguard.monitoring.domain.valueobjects.ConnectivityStatus;
+import com.example.cryoguard.monitoring.domain.valueobjects.ContainerStatus;
+import com.example.cryoguard.monitoring.domain.valueobjects.GpsCoordinates;
 import com.example.cryoguard.monitoring.infrastructure.persistence.ContainerRepository;
 import com.example.cryoguard.monitoring.infrastructure.persistence.TelemetryRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,11 +29,10 @@ public class ContainerCommandServiceImpl implements ContainerCommandService {
         container.setContainerId(command.getContainerId());
         container.setName(command.getName());
         container.setDeviceId(command.getDeviceId());
-        container.setTemperatureMin(command.getTemperatureMin());
-        container.setTemperatureMax(command.getTemperatureMax());
-        container.setHumidityMin(command.getHumidityMin());
-        container.setHumidityMax(command.getHumidityMax());
-        container.setConnectivity(ConnectivityStatus.OFFLINE);
+        container.setProductType(command.getProductType());
+        container.setOperatorId(command.getOperatorId());
+        container.setStatus(ContainerStatus.ACTIVE);
+        container.setBatteryLevel(100);
         return containerRepository.save(container);
     }
 
@@ -41,13 +41,23 @@ public class ContainerCommandServiceImpl implements ContainerCommandService {
     public Container updateContainer(Long id, CreateContainerCommand command) {
         Container container = containerRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Container not found: " + id));
-        container.setContainerId(command.getContainerId());
-        container.setName(command.getName());
-        container.setDeviceId(command.getDeviceId());
-        container.setTemperatureMin(command.getTemperatureMin());
-        container.setTemperatureMax(command.getTemperatureMax());
-        container.setHumidityMin(command.getHumidityMin());
-        container.setHumidityMax(command.getHumidityMax());
+
+        if (command.getContainerId() != null) {
+            container.setContainerId(command.getContainerId());
+        }
+        if (command.getName() != null) {
+            container.setName(command.getName());
+        }
+        if (command.getDeviceId() != null) {
+            container.setDeviceId(command.getDeviceId());
+        }
+        if (command.getProductType() != null) {
+            container.setProductType(command.getProductType());
+        }
+        if (command.getOperatorId() != null) {
+            container.setOperatorId(command.getOperatorId());
+        }
+
         return containerRepository.save(container);
     }
 
@@ -72,16 +82,16 @@ public class ContainerCommandServiceImpl implements ContainerCommandService {
         reading.setDoorOpen(command.getDoorOpen());
         reading.setLatitude(command.getLatitude());
         reading.setLongitude(command.getLongitude());
+        reading.setBatteryLevel(command.getBatteryLevel());
 
+        // Update container with latest telemetry data
         container.setCurrentTemperature(command.getTemperature());
         container.setCurrentHumidity(command.getHumidity());
-        container.setCurrentVibration(command.getVibration());
-        container.setGpsLatitude(command.getLatitude());
-        container.setGpsLongitude(command.getLongitude());
+        if (command.getLatitude() != null && command.getLongitude() != null) {
+            container.setCurrentLocation(new GpsCoordinates(command.getLatitude(), command.getLongitude()));
+        }
         container.setBatteryLevel(command.getBatteryLevel());
-        container.setLastSync(LocalDateTime.now());
-        container.setConnectivity(ConnectivityStatus.ONLINE);
-        container.updateStatus();
+        container.setLastUpdate(LocalDateTime.now());
 
         containerRepository.save(container);
         return telemetryRepository.save(reading);
@@ -92,11 +102,12 @@ public class ContainerCommandServiceImpl implements ContainerCommandService {
     public Container syncContainer(SyncContainerCommand command) {
         Container container = containerRepository.findById(command.getContainerId())
                 .orElseThrow(() -> new IllegalArgumentException("Container not found: " + command.getContainerId()));
-        container.setGpsLatitude(command.getLatitude());
-        container.setGpsLongitude(command.getLongitude());
-        container.setLastSync(LocalDateTime.now());
-        container.setConnectivity(ConnectivityStatus.ONLINE);
-        container.updateStatus();
+
+        if (command.getLatitude() != null && command.getLongitude() != null) {
+            container.setCurrentLocation(new GpsCoordinates(command.getLatitude(), command.getLongitude()));
+        }
+        container.setLastUpdate(LocalDateTime.now());
+
         return containerRepository.save(container);
     }
 }

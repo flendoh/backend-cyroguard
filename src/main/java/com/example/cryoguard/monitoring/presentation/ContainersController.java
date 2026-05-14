@@ -8,6 +8,7 @@ import com.example.cryoguard.monitoring.domain.commands.CreateContainerCommand;
 import com.example.cryoguard.monitoring.domain.commands.SyncContainerCommand;
 import com.example.cryoguard.monitoring.domain.commands.UpdateContainerTelemetryCommand;
 import com.example.cryoguard.monitoring.domain.entities.TelemetryReading;
+import com.example.cryoguard.monitoring.domain.valueobjects.ContainerStatus;
 import com.example.cryoguard.monitoring.presentation.assemblers.ContainerResourceAssembler;
 import com.example.cryoguard.monitoring.presentation.assemblers.TelemetryReadingResourceAssembler;
 import com.example.cryoguard.monitoring.presentation.resources.ContainerResource;
@@ -18,10 +19,14 @@ import com.example.cryoguard.monitoring.presentation.resources.TelemetryReadingR
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,12 +43,14 @@ public class ContainersController {
     private final TelemetryReadingResourceAssembler telemetryAssembler;
 
     @PostMapping
-    @Operation(summary = "Create container", description = "Creates a new container for monitoring with specified thresholds.")
+    @Operation(summary = "Create container", description = "Creates a new container for monitoring.")
     public ResponseEntity<ContainerResource> createContainer(@RequestBody CreateContainerResource resource) {
         CreateContainerCommand command = new CreateContainerCommand(
                 resource.getContainerId(),
                 resource.getName(),
                 resource.getDeviceId(),
+                resource.getProductType(),
+                resource.getOperatorId(),
                 resource.getTemperatureMin(),
                 resource.getTemperatureMax(),
                 resource.getHumidityMin(),
@@ -54,12 +61,25 @@ public class ContainersController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all containers", description = "Returns a list of all monitored containers.")
-    public ResponseEntity<List<ContainerResource>> getAllContainers() {
-        List<Container> containers = containerQueryService.getAllContainers();
-        List<ContainerResource> resources = containers.stream()
-                .map(containerAssembler::toResource)
-                .collect(Collectors.toList());
+    @Operation(summary = "Get all containers", description = "Returns a list of all monitored containers with optional filtering and pagination.")
+    public ResponseEntity<Page<ContainerResource>> getAllContainers(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String productType,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        ContainerStatus containerStatus = null;
+        if (status != null) {
+            try {
+                containerStatus = ContainerStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // Invalid status, ignore filter
+            }
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Container> containers = containerQueryService.getAllContainers(containerStatus, productType, pageable);
+        Page<ContainerResource> resources = containers.map(containerAssembler::toResource);
         return ResponseEntity.ok(resources);
     }
 
@@ -71,12 +91,14 @@ public class ContainersController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update container", description = "Updates an existing container with new threshold values.")
+    @Operation(summary = "Update container", description = "Updates an existing container.")
     public ResponseEntity<ContainerResource> updateContainer(@PathVariable Long id, @RequestBody CreateContainerResource resource) {
         CreateContainerCommand command = new CreateContainerCommand(
                 resource.getContainerId(),
                 resource.getName(),
                 resource.getDeviceId(),
+                resource.getProductType(),
+                resource.getOperatorId(),
                 resource.getTemperatureMin(),
                 resource.getTemperatureMax(),
                 resource.getHumidityMin(),
@@ -94,7 +116,7 @@ public class ContainersController {
     }
 
     @PostMapping("/{id}/telemetry")
-    @Operation(summary = "Record telemetry", description = "Records a new telemetry reading for a container (temperature, humidity, vibration, door status, location, battery).")
+    @Operation(summary = "Record telemetry", description = "Records a new telemetry reading for a container.")
     public ResponseEntity<TelemetryReadingResource> recordTelemetry(@PathVariable Long id, @RequestBody TelemetryInputResource resource) {
         UpdateContainerTelemetryCommand command = new UpdateContainerTelemetryCommand(
                 id,
@@ -112,9 +134,19 @@ public class ContainersController {
     }
 
     @GetMapping("/{id}/telemetry")
-    @Operation(summary = "Get container telemetry history", description = "Retrieves all telemetry readings for a specific container.")
-    public ResponseEntity<List<TelemetryReadingResource>> getTelemetry(@PathVariable Long id) {
-        List<TelemetryReading> readings = telemetryQueryService.getTelemetryByContainerId(id);
+    @Operation(summary = "Get container telemetry", description = "Retrieves telemetry readings for a specific container. Use time range for history.")
+    public ResponseEntity<List<TelemetryReadingResource>> getTelemetry(
+            @PathVariable Long id,
+            @RequestParam(required = false) LocalDateTime from,
+            @RequestParam(required = false) LocalDateTime to) {
+
+        List<TelemetryReading> readings;
+        if (from != null && to != null) {
+            readings = telemetryQueryService.getTelemetryByContainerId(id, from, to);
+        } else {
+            readings = telemetryQueryService.getTelemetryByContainerId(id);
+        }
+
         List<TelemetryReadingResource> resources = readings.stream()
                 .map(telemetryAssembler::toResource)
                 .collect(Collectors.toList());

@@ -42,4 +42,7 @@ public class TelemetryReading {
 
     @Column(precision = 10, scale = 6)
     private BigDecimal longitude;
+
+    @Column(name = "battery_level")
+    private Integer batteryLevel;
 }

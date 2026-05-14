@@ -1,7 +1,5 @@
 package com.example.cryoguard.monitoring.presentation.resources;
 
-import com.example.cryoguard.monitoring.domain.valueobjects.ConnectivityStatus;
-import com.example.cryoguard.monitoring.domain.valueobjects.ContainerStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,19 +14,21 @@ public class ContainerResource {
     private Long id;
     private String containerId;
     private String name;
-    private String deviceId;
-    private ContainerStatus status;
-    private BigDecimal currentTemperature;
-    private BigDecimal currentHumidity;
-    private BigDecimal currentVibration;
+    private String status;  // lowercase: active|inactive|maintenance
+    private GpsLocationDTO currentLocation;
+    private BigDecimal temperature;
+    private BigDecimal humidity;
     private Integer batteryLevel;
-    private ConnectivityStatus connectivity;
-    private BigDecimal gpsLatitude;
-    private BigDecimal gpsLongitude;
-    private LocalDateTime lastSync;
-    private Long assignedOperatorId;
-    private BigDecimal temperatureMin;
-    private BigDecimal temperatureMax;
-    private BigDecimal humidityMin;
-    private BigDecimal humidityMax;
+    private LocalDateTime lastUpdate;
+    private String productType;
+    private String deviceId;
+    private Long operatorId;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class GpsLocationDTO {
+        private BigDecimal lat;
+        private BigDecimal lng;
+    }
 }

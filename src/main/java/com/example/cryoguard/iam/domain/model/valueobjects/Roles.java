@@ -8,5 +8,7 @@ package com.example.cryoguard.iam.domain.model.valueobjects;
  */
 public enum Roles {
     ROLE_ADMINISTRATOR,
-    ROLE_OPERATOR
+    ROLE_OPERATOR,
+    ROLE_SUPERVISOR,
+    ROLE_NGO
 }

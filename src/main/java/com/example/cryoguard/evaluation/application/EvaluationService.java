@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -55,15 +57,21 @@ public class EvaluationService {
     }
 
     public Optional<Alert> checkTemperatureRisk(Long containerId, BigDecimal temperature, BigDecimal humidity, MonitoringRule rule) {
-        BigDecimal minTemp = rule.getTemperatureMin();
-        BigDecimal maxTemp = rule.getTemperatureMax();
-        BigDecimal warningOffset = rule.getTemperatureWarningOffset();
+        Map<String, BigDecimal> paramMap = buildParameterMap(rule);
+
+        BigDecimal minTemp = paramMap.get("temperature_min");
+        BigDecimal maxTemp = paramMap.get("temperature_max");
+        BigDecimal warningOffset = paramMap.get("temperature_warning_offset");
+
+        if (minTemp == null || maxTemp == null) {
+            return Optional.empty();
+        }
 
         if (temperature.compareTo(maxTemp) > 0 || temperature.compareTo(minTemp) < 0) {
             CreateAlertCommand command = new CreateAlertCommand(
                     containerId,
                     AlertSeverity.CRITICAL,
-                    AlertType.TEMPERATURE_EXCEEDED,
+                    AlertType.TEMPERATURE,
                     String.format("Temperature %s°C exceeded limits [%s°C - %s°C]",
                             temperature, minTemp, maxTemp),
                     null,
@@ -79,7 +87,7 @@ public class EvaluationService {
                 CreateAlertCommand command = new CreateAlertCommand(
                         containerId,
                         AlertSeverity.WARNING,
-                        AlertType.TEMPERATURE_EXCEEDED,
+                        AlertType.TEMPERATURE,
                         String.format("Temperature %s°C approaching limit [%s°C - %s°C]",
                                 temperature, minTemp, maxTemp),
                         null,
@@ -93,14 +101,16 @@ public class EvaluationService {
     }
 
     public Optional<Alert> checkVibrationRisk(Long containerId, BigDecimal vibration, MonitoringRule rule) {
-        BigDecimal criticalVibration = rule.getCriticalVibration();
-        BigDecimal maxVibration = rule.getMaxVibration();
+        Map<String, BigDecimal> paramMap = buildParameterMap(rule);
+
+        BigDecimal criticalVibration = paramMap.get("critical_vibration");
+        BigDecimal maxVibration = paramMap.get("max_vibration");
 
         if (criticalVibration != null && vibration.compareTo(criticalVibration) > 0) {
             CreateAlertCommand command = new CreateAlertCommand(
                     containerId,
                     AlertSeverity.CRITICAL,
-                    AlertType.VIBRATION_DETECTED,
+                    AlertType.VIBRATION,
                     String.format("Critical vibration detected: %s (max: %s)",
                             vibration, criticalVibration),
                     null,
@@ -113,7 +123,7 @@ public class EvaluationService {
             CreateAlertCommand command = new CreateAlertCommand(
                     containerId,
                     AlertSeverity.WARNING,
-                    AlertType.VIBRATION_DETECTED,
+                    AlertType.VIBRATION,
                     String.format("High vibration detected: %s (max: %s)",
                             vibration, maxVibration),
                     null,
@@ -126,14 +136,20 @@ public class EvaluationService {
     }
 
     public Optional<Alert> checkDoorStatus(Long containerId, boolean doorOpen, int durationMinutes, MonitoringRule rule) {
-        Integer maxOpenDuration = rule.getMaxDoorOpenMinutes();
+        Map<String, BigDecimal> paramMap = buildParameterMap(rule);
 
-        if (doorOpen && durationMinutes > maxOpenDuration) {
+        BigDecimal maxOpenDuration = paramMap.get("max_door_open_minutes");
+
+        if (maxOpenDuration == null) {
+            return Optional.empty();
+        }
+
+        if (doorOpen && durationMinutes > maxOpenDuration.intValue()) {
             CreateAlertCommand command = new CreateAlertCommand(
                     containerId,
                     AlertSeverity.CRITICAL,
-                    AlertType.DOOR_OPENED,
-                    String.format("Door open for %d minutes (max: %d)",
+                    AlertType.DOOR,
+                    String.format("Door open for %d minutes (max: %s)",
                             durationMinutes, maxOpenDuration),
                     null,
                     null
@@ -145,7 +161,7 @@ public class EvaluationService {
             CreateAlertCommand command = new CreateAlertCommand(
                     containerId,
                     AlertSeverity.INFO,
-                    AlertType.DOOR_OPENED,
+                    AlertType.DOOR,
                     String.format("Door opened for %d minutes", durationMinutes),
                     null,
                     null
@@ -157,15 +173,21 @@ public class EvaluationService {
     }
 
     public Optional<Alert> checkHumidityRisk(Long containerId, BigDecimal humidity, MonitoringRule rule) {
-        BigDecimal minHumidity = rule.getHumidityMin();
-        BigDecimal maxHumidity = rule.getHumidityMax();
-        BigDecimal warningOffset = rule.getHumidityWarningOffset();
+        Map<String, BigDecimal> paramMap = buildParameterMap(rule);
+
+        BigDecimal minHumidity = paramMap.get("humidity_min");
+        BigDecimal maxHumidity = paramMap.get("humidity_max");
+        BigDecimal warningOffset = paramMap.get("humidity_warning_offset");
+
+        if (minHumidity == null || maxHumidity == null) {
+            return Optional.empty();
+        }
 
         if (humidity.compareTo(maxHumidity) > 0 || humidity.compareTo(minHumidity) < 0) {
             CreateAlertCommand command = new CreateAlertCommand(
                     containerId,
                     AlertSeverity.WARNING,
-                    AlertType.HUMIDITY_ALERT,
+                    AlertType.HUMIDITY,
                     String.format("Humidity %s%% outside limits [%s%% - %s%%]",
                             humidity, minHumidity, maxHumidity),
                     null,
@@ -175,6 +197,20 @@ public class EvaluationService {
         }
 
         return Optional.empty();
+    }
+
+    private Map<String, BigDecimal> buildParameterMap(MonitoringRule rule) {
+        return Map.of(
+                "temperature_min", rule.getTemperatureMin(),
+                "temperature_max", rule.getTemperatureMax(),
+                "temperature_warning_offset", rule.getTemperatureWarningOffset(),
+                "humidity_min", rule.getHumidityMin(),
+                "humidity_max", rule.getHumidityMax(),
+                "humidity_warning_offset", rule.getHumidityWarningOffset(),
+                "max_vibration", rule.getMaxVibration(),
+                "critical_vibration", rule.getCriticalVibration(),
+                "max_door_open_minutes", rule.getMaxDoorOpenMinutes() != null ? BigDecimal.valueOf(rule.getMaxDoorOpenMinutes()) : null
+        );
     }
 
     public static class TelemetryReading {

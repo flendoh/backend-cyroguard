@@ -1,0 +1,29 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Java 21 + Spring Boot 4 + Maven + H2 (dev) / PostgreSQL NeonDB (prod)
+  Architecture: DDD with CQRS - Bounded Contexts per domain (iam, monitoring, evaluation, logistics, actuators, operations, notifications, audit)
+  Testing: JUnit 5 + Mockito
+  Style: Lombok, JPA Auditing, JWT authentication
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected bounded contexts
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include entity relationship per bounded context
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by bounded context, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    - Follow existing Spring Boot patterns
+    - Match frontend mock data structure from frontend-analysis.md
+  verify:
+    - Run spring-boot:run to validate
+    - Compare implementation against every spec scenario
+  archive:
+    - Warn before merging destructive deltas

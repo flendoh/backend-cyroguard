@@ -39,4 +39,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return True if the user exists, false otherwise.
      */
     boolean existsByEmail(String email);
+
+    /**
+     * This method is responsible for finding the user by email (case-insensitive).
+     * @param email The email.
+     * @return The user object.
+     */
+    Optional<User> findByEmailIgnoreCase(String email);
 }

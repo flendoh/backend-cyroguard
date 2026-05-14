@@ -8,16 +8,23 @@ import java.util.List;
 
 public class UserResourceFromEntityAssembler {
     public static UserResource toResourceFromEntity(User user) {
-        List<String> roles = user.getRoles().stream()
+        // Get the primary role (first one) as lowercase string
+        String role = user.getRoles().stream()
                 .map(Role::getStringName)
-                .toList();
+                .findFirst()
+                .orElse("operator");
+
+        // Convert status to lowercase string
+        String status = user.getStatus().name().toLowerCase();
+
         return new UserResource(
             user.getId(),
-            user.getUsername(),
+            user.getUsername(), // name field maps to username
             user.getEmail(),
-            roles,
-            user.getStatus(),
-            user.getLastLogin()
+            role,
+            status,
+            user.getLastLogin(),
+            user.getCreatedAt()
         );
     }
 }

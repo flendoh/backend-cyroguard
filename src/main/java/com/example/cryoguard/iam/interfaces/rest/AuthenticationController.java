@@ -1,11 +1,11 @@
 package com.example.cryoguard.iam.interfaces.rest;
 
+import com.example.cryoguard.iam.application.internal.commandservices.UserCommandServiceImpl;
 import com.example.cryoguard.iam.domain.services.UserCommandService;
-import com.example.cryoguard.iam.interfaces.rest.resources.AuthenticatedUserResource;
+import com.example.cryoguard.iam.interfaces.rest.resources.LoginResponseResource;
 import com.example.cryoguard.iam.interfaces.rest.resources.SignInResource;
 import com.example.cryoguard.iam.interfaces.rest.resources.SignUpResource;
 import com.example.cryoguard.iam.interfaces.rest.resources.UserResource;
-import com.example.cryoguard.iam.interfaces.rest.transform.AuthenticatedUserResourceFromEntityAssembler;
 import com.example.cryoguard.iam.interfaces.rest.transform.SignInCommandFromResourceAssembler;
 import com.example.cryoguard.iam.interfaces.rest.transform.SignUpCommandFromResourceAssembler;
 import com.example.cryoguard.iam.interfaces.rest.transform.UserResourceFromEntityAssembler;
@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
  *     This controller is responsible for handling authentication requests.
  *     It exposes two endpoints:
  *     <ul>
- *         <li>POST /api/v1/auth/sign-in</li>
+ *         <li>POST /api/v1/auth/login</li>
  *         <li>POST /api/v1/auth/sign-up</li>
  *     </ul>
  * </p>
@@ -42,24 +42,53 @@ public class AuthenticationController {
     }
 
     /**
-     * Handles the sign-in request.
-     * @param signInResource the sign-in request body.
-     * @return the authenticated user resource.
+     * Handles the login request (POST /auth/login).
+     * @param signInResource the sign-in request body with email and password.
+     * @return the login response with JWT token and user info.
      */
-    @PostMapping(value = "/sign-in", consumes = {"application/json"})
-    @Operation(summary = "Sign-in", description = "Sign-in with the provided credentials.")
+    @PostMapping(value = "/login", consumes = {"application/json"})
+    @Operation(summary = "Login", description = "Authenticate with email and password to receive JWT token.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "User authenticated successfully."),
-            @ApiResponse(responseCode = "404", description = "User not found.")})
-    public ResponseEntity<AuthenticatedUserResource> signIn(@RequestBody SignInResource signInResource) {
-        var signInCommand = SignInCommandFromResourceAssembler.toCommandFromResource(signInResource);
-        var authenticatedUser = userCommandService.handle(signInCommand);
-        if (authenticatedUser.isEmpty()) {
-            return ResponseEntity.notFound().build();
+            @ApiResponse(responseCode = "200", description = "Login successful."),
+            @ApiResponse(responseCode = "401", description = "Invalid credentials."),
+            @ApiResponse(responseCode = "403", description = "Account locked.")})
+    public ResponseEntity<LoginResponseResource> login(@RequestBody SignInResource signInResource) {
+        try {
+            var signInCommand = SignInCommandFromResourceAssembler.toCommandFromResource(signInResource);
+            var result = userCommandService.handle(signInCommand);
+            if (result.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            var user = result.get().getLeft();
+            var token = result.get().getRight();
+
+            // Get primary role as lowercase string
+            String role = user.getRoles().stream()
+                    .map(r -> {
+                        String name = r.getName().name();
+                        if (name.startsWith("ROLE_")) {
+                            name = name.substring(5);
+                        }
+                        return name.toLowerCase();
+                    })
+                    .findFirst()
+                    .orElse("operator");
+
+            var loginResponse = new LoginResponseResource(
+                token,
+                new LoginResponseResource.UserInfoResource(
+                    user.getId(),
+                    user.getUsername(),
+                    user.getEmail(),
+                    role
+                )
+            );
+            return ResponseEntity.ok(loginResponse);
+        } catch (UserCommandServiceImpl.LockedUserException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        var authenticatedUserResource = AuthenticatedUserResourceFromEntityAssembler.toResourceFromEntity(
-            authenticatedUser.get().getLeft(), authenticatedUser.get().getRight());
-        return ResponseEntity.ok(authenticatedUserResource);
     }
 
     /**

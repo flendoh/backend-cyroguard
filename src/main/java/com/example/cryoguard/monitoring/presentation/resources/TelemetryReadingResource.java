@@ -20,4 +20,5 @@ public class TelemetryReadingResource {
     private Boolean doorOpen;
     private BigDecimal latitude;
     private BigDecimal longitude;
+    private Integer batteryLevel;
 }

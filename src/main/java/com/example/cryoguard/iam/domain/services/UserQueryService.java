@@ -4,6 +4,7 @@ import com.example.cryoguard.iam.domain.model.aggregates.User;
 import com.example.cryoguard.iam.domain.model.queries.GetAllUsersQuery;
 import com.example.cryoguard.iam.domain.model.queries.GetUserByIdQuery;
 import com.example.cryoguard.iam.domain.model.queries.GetUserByUsernameQuery;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,9 +19,9 @@ public interface UserQueryService {
     /**
      * Handle get all users query
      * @param query the {@link GetAllUsersQuery} query
-     * @return a list of {@link User} entities
+     * @return a {@link Page} of {@link User} entities with pagination and filtering
      */
-    List<User> handle(GetAllUsersQuery query);
+    Page<User> handle(GetAllUsersQuery query);
 
     /**
      * Handle get user by id query

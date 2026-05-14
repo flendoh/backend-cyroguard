@@ -1,0 +1,79 @@
+change: refactor-backend-complete
+created: 2026-05-14
+status: tasks_completed
+
+phases:
+  proposal: completed
+  specs: completed
+  design: completed
+  tasks: completed
+  apply: pending
+  verify: pending
+  archive: pending
+
+contexts:
+  iam: pending (partial existing)
+  monitoring: pending (partial existing)
+  evaluation: pending (partial existing)
+  logistics: pending (partial existing)
+  actuators: pending (new)
+  operations: pending (new)
+  notifications: pending (new)
+  audit: pending (new)
+
+artifacts:
+  # Proposal
+  - openspec/changes/proposal.md
+
+  # Specs (8 bounded contexts)
+  - openspec/specs/iam/spec.md
+  - openspec/specs/monitoring/spec.md
+  - openspec/specs/evaluation/spec.md
+  - openspec/specs/logistics/spec.md
+  - openspec/specs/actuators/spec.md
+  - openspec/specs/operations/spec.md
+  - openspec/specs/notifications/spec.md
+  - openspec/specs/audit/spec.md
+
+  # Designs
+  - openspec/changes/design-iam.md
+  - openspec/changes/design-monitoring.md
+  - openspec/changes/design-evaluation.md
+  - openspec/changes/design-logistics.md
+  - openspec/changes/design-new-contexts.md
+
+  # Tasks
+  - openspec/changes/tasks.md (overview)
+  - openspec/changes/tasks-iam-monitoring.md
+  - openspec/changes/tasks-evaluation-logistics.md
+  - openspec/changes/tasks-new-contexts.md
+
+frontend_coverage:
+  users: iam
+  login: iam
+  containers: monitoring
+  monitoring: monitoring
+  dashboard_home: monitoring
+  alerts: evaluation
+  routes: logistics
+  geofences: logistics
+  reports: logistics (future)
+  audit_logs: audit
+  settings: evaluation + notifications
+
+gaps_not_in_frontend:
+  - actuators: No UI yet (device-side)
+  - operations: No UI yet (mobile app future)
+  - notifications: Settings config only, no notifications list UI
+
+implementation_order:
+  - iam
+  - monitoring
+  - evaluation
+  - logistics
+  - audit
+  - actuators
+  - operations
+  - notifications
+
+next_phase: apply

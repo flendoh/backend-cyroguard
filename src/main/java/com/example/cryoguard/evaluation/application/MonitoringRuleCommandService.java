@@ -1,18 +1,16 @@
 package com.example.cryoguard.evaluation.application;
 
-import com.example.cryoguard.evaluation.domain.commands.CreateMonitoringRuleCommand;
 import com.example.cryoguard.evaluation.domain.entities.MonitoringRule;
+import com.example.cryoguard.evaluation.presentation.resources.MonitoringRuleUpdateResource;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface MonitoringRuleCommandService {
 
-    MonitoringRule createRule(CreateMonitoringRuleCommand command);
+    MonitoringRule createRule(MonitoringRule rule);
 
-    MonitoringRule updateRule(Long id, CreateMonitoringRuleCommand command);
-
-    void deleteRule(Long id);
+    List<MonitoringRule> updateRules(List<MonitoringRuleUpdateResource> updates);
 
     Optional<MonitoringRule> getRuleById(Long id);
 

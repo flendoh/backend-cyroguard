@@ -16,7 +16,7 @@ public interface AlertCommandService {
 
     Alert resolveAlert(ResolveAlertCommand command);
 
-    Alert escalateAlert(EscalateAlertCommand command);
+    Alert escalateAlert(Long alertId);
 
     List<Alert> getAllAlerts();
 }

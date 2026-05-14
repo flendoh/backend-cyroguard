@@ -17,7 +17,8 @@ public class TelemetryReadingResourceAssembler {
                 reading.getVibration(),
                 reading.getDoorOpen(),
                 reading.getLatitude(),
-                reading.getLongitude()
+                reading.getLongitude(),
+                reading.getBatteryLevel()
         );
     }
 }

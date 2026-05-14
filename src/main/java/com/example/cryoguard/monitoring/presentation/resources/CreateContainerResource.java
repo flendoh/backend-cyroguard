@@ -13,6 +13,8 @@ public class CreateContainerResource {
     private String containerId;
     private String name;
     private String deviceId;
+    private String productType;
+    private Long operatorId;
     private BigDecimal temperatureMin;
     private BigDecimal temperatureMax;
     private BigDecimal humidityMin;

@@ -6,7 +6,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -44,7 +44,7 @@ public class User extends AuditableAbstractAggregateRoot<User> {
     private UserStatus status = UserStatus.ACTIVE;
 
     @Column
-    private LocalDateTime lastLogin;
+    private Date lastLogin;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
@@ -94,7 +94,7 @@ public class User extends AuditableAbstractAggregateRoot<User> {
      * Update the last login timestamp
      */
     public void recordLogin() {
-        this.lastLogin = LocalDateTime.now();
+        this.lastLogin = new Date();
     }
 
     /**
@@ -128,7 +128,7 @@ public class User extends AuditableAbstractAggregateRoot<User> {
         return this.status;
     }
 
-    public LocalDateTime getLastLogin() {
+    public Date getLastLogin() {
         return this.lastLogin;
     }
 
@@ -153,7 +153,7 @@ public class User extends AuditableAbstractAggregateRoot<User> {
         this.status = status;
     }
 
-    public void setLastLogin(LocalDateTime lastLogin) {
+    public void setLastLogin(Date lastLogin) {
         this.lastLogin = lastLogin;
     }
 
@@ -166,6 +166,21 @@ public class User extends AuditableAbstractAggregateRoot<User> {
      */
     public enum UserStatus {
         ACTIVE,
-        INACTIVE
+        INACTIVE,
+        LOCKED
+    }
+
+    /**
+     * Lock the user account
+     */
+    public void lock() {
+        this.status = UserStatus.LOCKED;
+    }
+
+    /**
+     * Check if user is locked
+     */
+    public boolean isLocked() {
+        return this.status == UserStatus.LOCKED;
     }
 }

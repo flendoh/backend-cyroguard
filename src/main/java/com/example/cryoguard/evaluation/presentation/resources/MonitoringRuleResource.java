@@ -11,15 +11,9 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class MonitoringRuleResource {
     private Long id;
-    private Long containerId;
-    private BigDecimal temperatureMin;
-    private BigDecimal temperatureMax;
-    private BigDecimal temperatureWarningOffset;
-    private BigDecimal humidityMin;
-    private BigDecimal humidityMax;
-    private BigDecimal humidityWarningOffset;
-    private BigDecimal maxVibration;
-    private BigDecimal criticalVibration;
-    private Integer maxDoorOpenMinutes;
-    private Boolean active;
+    private String name;
+    private String parameter;
+    private BigDecimal value;
+    private String unit;
+    private String updatedAt;
 }

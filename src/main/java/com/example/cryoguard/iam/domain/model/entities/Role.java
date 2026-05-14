@@ -36,10 +36,14 @@ public class Role {
 
     /**
      * Get the name of the role as a string
-     * @return the name of the role as a string
+     * @return the name of the role as a lowercase string (e.g., "admin", "operator")
      */
     public String getStringName() {
-        return name.name();
+        String name = this.name.name(); // e.g., "ROLE_ADMINISTRATOR"
+        if (name.startsWith("ROLE_")) {
+            name = name.substring(5); // Remove "ROLE_" prefix
+        }
+        return name.toLowerCase(); // "administrator" -> "administrator"
     }
 
     /**

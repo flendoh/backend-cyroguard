@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "monitoring_rules")
@@ -50,4 +51,7 @@ public class MonitoringRule {
 
     @Column(name = "critical_vibration", precision = 10, scale = 2)
     private BigDecimal criticalVibration;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

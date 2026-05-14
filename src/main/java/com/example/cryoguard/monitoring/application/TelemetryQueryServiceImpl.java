@@ -5,6 +5,7 @@ import com.example.cryoguard.monitoring.infrastructure.persistence.TelemetryRepo
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -16,5 +17,10 @@ public class TelemetryQueryServiceImpl implements TelemetryQueryService {
     @Override
     public List<TelemetryReading> getTelemetryByContainerId(Long containerId) {
         return telemetryRepository.findByContainerIdOrderByTimestampDesc(containerId);
+    }
+
+    @Override
+    public List<TelemetryReading> getTelemetryByContainerId(Long containerId, LocalDateTime from, LocalDateTime to) {
+        return telemetryRepository.findByContainerIdAndTimestampBetweenOrderByTimestampDesc(containerId, from, to);
     }
 }
